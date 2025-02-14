@@ -55,7 +55,7 @@ public interface LivroRepository extends JpaRepository<Livro, UUID> {
     void deleteByGenero(GeneroEnum generoEnum);
 
     @Modifying // é obrigado colocar quqndo tiver fazendo uma operacao de escrita
-    @Transactional // é obrigado colocar quqndo tiver fazendo uma operacao de escrita
+    @Transactional // é obrigado colocar quqndo tiver fazendo uma operacao de escrita, tudo só irá salvar no banco de dados se der tudo certo
     @Query("""
             update Livro set dataPublicacao = ?1 where id = ?2
                         """)
