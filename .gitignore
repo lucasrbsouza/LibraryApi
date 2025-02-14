@@ -32,7 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
-### classes a serem ignoradas ###
+### modulos/classes a serem ignorados ###
 src/main/java/io/github/lucasrbsouza/libraryapi/service/TransacaoService.java
 comando-docker.txt
 comandos-sql.txt
+ModuloAnotacoes
+ModuloAnotacoes/RestApis.txt
+ModuloAnotacoes/Modelagem-de-contratos-de-APIs.txt
+
