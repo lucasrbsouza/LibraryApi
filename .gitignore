@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### classes a serem ignoradas ###
+src/main/java/io/github/lucasrbsouza/libraryapi/service/TransacaoService.java
+comando-docker.txt
+comandos-sql.txt
