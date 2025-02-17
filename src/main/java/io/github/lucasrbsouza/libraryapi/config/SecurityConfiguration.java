@@ -159,27 +159,33 @@ public class SecurityConfiguration {
 //    }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10);
-    }
-
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, LoginSocialSucessHandler loginSocialSucessHandler) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http, LoginSocialSucessHandler successHandler) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .formLogin(Customizer.withDefaults()) // se desabilitarmos o formulario de login não terá a pagina de login so o http basic
-                .httpBasic(Customizer.withDefaults())
+                //.httpBasic(Customizer.withDefaults())
+                .formLogin(configurer -> {
+                    configurer.loginPage("/login");
+                })
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers("/login/**").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/usuarios/**").permitAll();
-                    authorize.anyRequest().authenticated(); //qualquer um abaixo disso sera ignorado, Any request tem que ficar por ultimo
+
+                    authorize.anyRequest().authenticated();
                 })
-                .oauth2Login(oathu2->{
-                    oathu2.successHandler(loginSocialSucessHandler);
+                .oauth2Login(oauth2 -> {
+                    oauth2
+                            .loginPage("/login")
+                            .successHandler(successHandler);
                 })
                 .build();
     }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder(10);
+    }
+
     @Bean
     public GrantedAuthorityDefaults grantedAuthorityDefaults(){
         return new GrantedAuthorityDefaults("");

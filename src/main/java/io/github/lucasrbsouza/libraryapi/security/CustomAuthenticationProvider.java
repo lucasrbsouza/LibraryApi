@@ -17,10 +17,6 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
     private final UsuarioService usuarioService;
     private final PasswordEncoder encoder;
 
-    private static UsernameNotFoundException getErroUsuarioNaoEncontrado() {
-        return new UsernameNotFoundException("Usuario ou senha incorreto");
-    }
-
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String login = authentication.getName();
@@ -28,20 +24,23 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 
         Usuario usuarioEncontrado = usuarioService.obterPorLogin(login);
 
-        if (usuarioEncontrado == null){
+        if(usuarioEncontrado == null){
             throw getErroUsuarioNaoEncontrado();
         }
 
-        String senhaCript = usuarioEncontrado.getSenha();
+        String senhaCriptografada = usuarioEncontrado.getSenha();
 
-        boolean senhasBatem = encoder.matches(senhaDigitada, senhaCript);
+        boolean senhamBatem = encoder.matches(senhaDigitada, senhaCriptografada);
 
-        if (senhasBatem){
+        if(senhamBatem){
             return new CustomAuthentication(usuarioEncontrado);
         }
 
-
         throw getErroUsuarioNaoEncontrado();
+    }
+
+    private UsernameNotFoundException getErroUsuarioNaoEncontrado() {
+        return new UsernameNotFoundException("Usuário e/ou senha incorretos!");
     }
 
     @Override

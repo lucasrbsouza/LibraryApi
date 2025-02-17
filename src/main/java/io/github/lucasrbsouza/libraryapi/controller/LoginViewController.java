@@ -17,9 +17,10 @@ public class LoginViewController {
     @GetMapping("/")
     @ResponseBody
     public String paginaHome(Authentication authentication){
-        if (authentication instanceof CustomAuthentication customAuth){
+        if(authentication instanceof CustomAuthentication customAuth){
             System.out.println(customAuth.getUsuario());
         }
         return "Olá " + authentication.getName();
     }
 }
+

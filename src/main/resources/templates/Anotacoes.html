@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Anotações sobre Spring Security</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-5">
+    <h1 class="text-center">Anotações sobre Spring Security</h1>
+
+    <div class="card my-4">
+        <div class="card-header bg-primary text-white">1. Configuração Inicial - HTTP Basic</div>
+        <div class="card-body">
+            <p>Adicionamos uma classe de configuração para personalizar a segurança utilizando HTTP Basic.</p>
+            <pre><code>@Configuration
+@EnableWebSecurity
+public class SecurityConfiguration {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(Customizer.withDefaults())
+                .httpBasic(Customizer.withDefaults())
+                .authorizeHttpRequests(authorize ->{
+                    authorize.anyRequest().authenticated();
+                })
+                .build();
+    }
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card my-4">
+        <div class="card-header bg-primary text-white">2. Customização do Formulário de Login com Thymeleaf</div>
+        <div class="card-body">
+            <p>Personalizamos a página de login utilizando um Controller e WebMvcConfigurer:</p>
+            <pre><code>@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    return http
+        .csrf(AbstractHttpConfigurer::disable)
+        .formLogin(configure -> configure.loginPage("/login").permitAll())
+        .authorizeHttpRequests(authorize ->{
+            authorize.anyRequest().authenticated();
+        })
+        .build();
+}</code></pre>
+            <pre><code>@Controller
+public class LoginViewController {
+    @GetMapping("/login")
+    public String paginaLogin(){
+        return "login";
+    }
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card my-4">
+        <div class="card-header bg-primary text-white">3. UserDetailsService e PasswordEncoder</div>
+        <div class="card-body">
+            <p>Armazenamos usuários em memória com senhas criptografadas:</p>
+            <pre><code>@Bean
+public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(10);
+}
+
+@Bean
+public UserDetailsService userDetailsService(PasswordEncoder encoder) {
+    UserDetails user1 = User.builder().username("Usuario").password(encoder.encode("123")).roles("USER").build();
+    UserDetails user2 = User.builder().username("Admin").password(encoder.encode("123")).roles("ADMIN").build();
+    return new InMemoryUserDetailsManager(user1, user2);
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card my-4">
+        <div class="card-header bg-primary text-white">4. Trabalhando com Roles e Authorities</div>
+        <div class="card-body">
+            <p>Utilizamos <code>hasRole()</code> e <code>hasAuthority()</code> para definir permissões:</p>
+            <pre><code>authorize.requestMatchers("/autores/**").hasRole("ADMIN");
+authorize.requestMatchers(HttpMethod.DELETE, "/autores/**").hasAuthority("CADASTRAR_AUTOR");</code></pre>
+        </div>
+    </div>
+
+    <div class="card my-4">
+        <div class="card-header bg-primary text-white">5. Login Social com Google</div>
+        <div class="card-body">
+            <p>Habilitamos login social utilizando OAuth2 com Google:</p>
+            <pre><code>spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: SEU_CLIENT_ID
+            client-secret: SEU_CLIENT_SECRET</code></pre>
+            <pre><code>@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    return http
+        .csrf(AbstractHttpConfigurer::disable)
+        .formLogin(Customizer.withDefaults())
+        .httpBasic(Customizer.withDefaults())
+        .authorizeHttpRequests(authorize -> {
+            authorize.requestMatchers("/login/**").permitAll();
+            authorize.requestMatchers(HttpMethod.POST, "/usuarios/**").permitAll();
+            authorize.anyRequest().authenticated();
+        })
+        .oauth2Login(Customizer.withDefaults())
+        .build();
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card my-4">
+        <div class="card-header bg-primary text-white">6. Auditoria do Usuário Logado</div>
+        <div class="card-body">
+            <p>Adicionamos a captura do usuário logado para auditoria:</p>
+            <pre><code>@Component
+@RequiredArgsConstructor
+public class SecurityService {
+    private final UsuarioService usuarioService;
+    public Usuario obterUsuarioLogado(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return usuarioService.obterPorLogin(userDetails.getUsername());
+    }
+}</code></pre>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
