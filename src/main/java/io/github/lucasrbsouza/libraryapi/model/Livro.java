@@ -6,9 +6,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -17,6 +21,7 @@ import java.util.UUID;
 @Setter
 @ToString(exclude = "autor")
 @EqualsAndHashCode
+@EntityListeners(AuditingEntityListener.class)
 public class Livro {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -34,7 +39,7 @@ public class Livro {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "genero", length = 30, nullable = false)
-    private GeneroEnum genero;
+private GeneroEnum genero;
 
     @Column(name = "preco", precision = 18,scale = 2)
     private BigDecimal preco;
@@ -45,6 +50,18 @@ public class Livro {
             fetch = FetchType.LAZY //vai trazer só os dados do livro e não do autor
     )
     private Autor autor;
+
+    @CreatedDate
+    @Column(name = "data_cadastro")
+    private LocalDateTime dataCadastro;
+
+    @LastModifiedDate
+    @Column(name = "data_atualizacao")
+    private LocalDateTime dataAtualizacao;
+
+    @ManyToOne
+    @JoinColumn(name = "id_usuario")
+    private Usuario usuario;
 
     public Livro() {
     }

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @SpringBootTest
@@ -112,8 +113,8 @@ public class LivroRepositoryTest {
 
     @Test
     void pesquisarPorIsbnoTest() {
-        List<Livro> list = repository.findByIsbn("OHGWE9273");
-        list.forEach(System.out::println);
+        Optional<Livro> list = repository.findByIsbn("OHGWE9273");
+        list.stream().forEach(System.out::println);
     }
 
     @Test

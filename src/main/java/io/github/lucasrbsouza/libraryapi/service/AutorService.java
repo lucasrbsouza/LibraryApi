@@ -2,9 +2,13 @@ package io.github.lucasrbsouza.libraryapi.service;
 
 import io.github.lucasrbsouza.libraryapi.exceptions.OperacaoNaoPermitidaException;
 import io.github.lucasrbsouza.libraryapi.model.Autor;
+import io.github.lucasrbsouza.libraryapi.model.Usuario;
 import io.github.lucasrbsouza.libraryapi.repository.AutorRepository;
 import io.github.lucasrbsouza.libraryapi.repository.LivroRepository;
+import io.github.lucasrbsouza.libraryapi.security.SecurityService;
 import io.github.lucasrbsouza.libraryapi.validator.AutorValidator;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,15 +20,19 @@ public class AutorService {
     private final AutorRepository repository;
     private final AutorValidator validator;
     private final LivroRepository livroRepository;
+    private final SecurityService securityService;
 
-    public AutorService(AutorRepository repository, AutorValidator validator, LivroRepository livroRepository) {
+    public AutorService(AutorRepository repository, AutorValidator validator, LivroRepository livroRepository, SecurityService securityService) {
         this.repository = repository;
         this.validator = validator;
         this.livroRepository = livroRepository;
+        this.securityService = securityService;
     }
 
     public Autor salvar(Autor autor) {
         validator.validar(autor);
+        Usuario usuario = securityService.obterUsuarioLOgado();
+        autor.setUsuario(usuario);
         return repository.save(autor);
     }
 
@@ -64,6 +72,17 @@ public class AutorService {
             System.out.println("buscando todos");
             return repository.findAll();
         }
+    }
+
+    public List<Autor> pesquisaByExample(String nome, String nacionalidade){
+        Autor autor = new Autor();
+        autor.setNome(nome);
+        autor.setNacionalidade(nacionalidade);
+        ExampleMatcher matcher = ExampleMatcher.matching().withIgnoreNullValues().withIgnoreCase().withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING);
+        Example<Autor> autorExample = Example.of(autor, matcher);
+
+        return  repository.findAll(autorExample);
+
     }
 
     public boolean possuiLivro(Autor autor){

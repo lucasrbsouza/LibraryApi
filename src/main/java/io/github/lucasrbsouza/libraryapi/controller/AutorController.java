@@ -1,14 +1,18 @@
 package io.github.lucasrbsouza.libraryapi.controller;
 
 import io.github.lucasrbsouza.libraryapi.controller.dtos.AutorDTO;
-import io.github.lucasrbsouza.libraryapi.controller.dtos.ErroResposta;
-import io.github.lucasrbsouza.libraryapi.exceptions.OperacaoNaoPermitidaException;
-import io.github.lucasrbsouza.libraryapi.exceptions.RegistroDuplicadoException;
+import io.github.lucasrbsouza.libraryapi.controller.mappers.AutorMapper;
 import io.github.lucasrbsouza.libraryapi.model.Autor;
+import io.github.lucasrbsouza.libraryapi.model.Usuario;
+import io.github.lucasrbsouza.libraryapi.security.SecurityService;
 import io.github.lucasrbsouza.libraryapi.service.AutorService;
+import io.github.lucasrbsouza.libraryapi.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
@@ -18,81 +22,65 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/autores")
-public class AutorController {
+public class AutorController implements GenericController {
 
     public final AutorService autorService;
+    private final AutorMapper autorMapper;
+    private final SecurityService securityService;
 
-    public AutorController(AutorService autorService) {
+    public AutorController(AutorService autorService, AutorMapper autorMapper, SecurityService securityService) {
         this.autorService = autorService;
+        this.autorMapper = autorMapper;
+        this.securityService = securityService;
     }
 
     @PostMapping
-    public ResponseEntity<Object> salvar(@RequestBody AutorDTO autorDTO) { //@RequestBody Indica que o objeto vair ir no body
-        try {
+    @PreAuthorize("hasRole('GERENTE')")
+    public ResponseEntity<Object> salvar(@Valid @RequestBody AutorDTO autorDTO) { //@RequestBody Indica que o objeto vair ir no body
 
+        Autor autorEntidade = autorMapper.toEntity(autorDTO);
+        autorService.salvar(autorEntidade);
 
-            var autorEntidade = autorDTO.mapearParaAutor();
-            autorService.salvar(autorEntidade);
-
-            URI location = ServletUriComponentsBuilder
-                    .fromCurrentRequest()
-                    .path("/{id}")
-                    .buildAndExpand(autorEntidade.getId())
-                    .toUri();
-
-            return ResponseEntity.created(location).build();
-        }catch (RegistroDuplicadoException ex){
-            var erroDTO = ErroResposta.conflito(ex.getMessage());
-            return ResponseEntity.status(erroDTO.status()).body(erroDTO); //passamos o status que sera dado caso de erro, e depois colocamos no body o texto de erro
-        }
+        URI location = gerarHeaderLocation(autorEntidade.getId());
+        return ResponseEntity.created(location).build();
     }
 
     @GetMapping("{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','GERENTE')")
     public ResponseEntity<AutorDTO> obterDetalhase(@PathVariable("id") String id) {
-        var idAutor = UUID.fromString(id);
-        Optional<Autor> autor = autorService.obterPorId(idAutor);
-        if (autor.isPresent()) {
-            Autor entidade = autor.get();
-            AutorDTO autorDTO = new AutorDTO(entidade.getId(), entidade.getNome(), entidade.getDataNascimento(), entidade.getNacionalidade());
+        UUID idAutor = UUID.fromString(id);
 
-            return ResponseEntity.ok(autorDTO);
-        }
+        return autorService.obterPorId(idAutor)
+                .map(autor -> {
+                    AutorDTO dto = autorMapper.toDTO(autor);
+                    return ResponseEntity.ok(dto);
+                }).orElseGet(() -> ResponseEntity.notFound().build());
 
-        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("{id}")
+    @PreAuthorize("hasRole('GERENTE')")
     public ResponseEntity<?> deletar(@PathVariable("id") String id) {
-        try {
-            var idAutor = UUID.fromString(id);
-            Optional<Autor> autor = autorService.obterPorId(idAutor);
+        var idAutor = UUID.fromString(id);
+        Optional<Autor> autor = autorService.obterPorId(idAutor);
 
-            if (autor.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-            autorService.delete(autor.get());
-
-            return ResponseEntity.noContent().build();
-        } catch (OperacaoNaoPermitidaException e) {
-            var erroDto = ErroResposta.respostaPadrao(e.getMessage());
-            return ResponseEntity.status(erroDto.status()).body(erroDto);
+        if (autor.isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
+        autorService.delete(autor.get());
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','GERENTE')")
     public ResponseEntity<List<AutorDTO>> pesquisar(@RequestParam(value = "nome", required = false) String nome,
                                                     @RequestParam(value = "nacionalidade", required = false) String nacionalidade) {
         //@RequestParam é a anotacao para Query Params, e o required é pra dizer se é obrigatorio ou não, pr default ele é obrigatório
 
-        List<Autor> resultado = autorService.pesquisa(nome, nacionalidade);
+        List<Autor> resultado = autorService.pesquisaByExample(nome, nacionalidade);
         List<AutorDTO> pesquisa = resultado.stream()
-                .map(
-                        autor ->
-                                new AutorDTO(
-                                        autor.getId(),
-                                        autor.getNome(),
-                                        autor.getDataNascimento(),
-                                        autor.getNacionalidade()))
+                .map(autorMapper::toDTO)
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(pesquisa);
@@ -100,27 +88,24 @@ public class AutorController {
     }
 
     @PutMapping("{id}")
-    public ResponseEntity<Object> atualizar(@PathVariable("id") String id, @RequestBody AutorDTO dto) {
-        try {
-            var idAutor = UUID.fromString(id);
-            Optional<Autor> autor = autorService.obterPorId(idAutor);
+    @PreAuthorize("hasRole('GERENTE')")
+    public ResponseEntity<Object> atualizar(@PathVariable("id") String id, @Valid @RequestBody AutorDTO dto) {
+        var idAutor = UUID.fromString(id);
+        Optional<Autor> autor = autorService.obterPorId(idAutor);
 
-            if (autor.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            var autorGet = autor.get();
-
-            autorGet.setNome(dto.nome());
-            autorGet.setNacionalidade(dto.nacionalidade());
-            autorGet.setDataNascimento(dto.dataNascimento());
-
-            autorService.atualizar(autorGet);
-
-            return ResponseEntity.noContent().build();
-        } catch (RegistroDuplicadoException e) {
-            var erroDto = ErroResposta.conflito(e.getMessage());
-            return ResponseEntity.status(erroDto.status()).body(erroDto);
+        if (autor.isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
+
+        var autorGet = autor.get();
+
+        autorGet.setNome(dto.nome());
+        autorGet.setNacionalidade(dto.nacionalidade());
+        autorGet.setDataNascimento(dto.dataNascimento());
+
+        autorService.atualizar(autorGet);
+
+        return ResponseEntity.noContent().build();
+
     }
 }
