@@ -1,6 +1,8 @@
 package io.github.lucasrbsouza.libraryapi.config;
 
+import io.github.lucasrbsouza.libraryapi.security.CustomAuthentication;
 import io.github.lucasrbsouza.libraryapi.security.CustomDetailsService;
+import io.github.lucasrbsouza.libraryapi.security.LoginSocialSucessHandler;
 import io.github.lucasrbsouza.libraryapi.service.UsuarioService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -163,7 +165,7 @@ public class SecurityConfiguration {
 
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, LoginSocialSucessHandler loginSocialSucessHandler) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(Customizer.withDefaults()) // se desabilitarmos o formulario de login não terá a pagina de login so o http basic
@@ -173,7 +175,9 @@ public class SecurityConfiguration {
                     authorize.requestMatchers(HttpMethod.POST, "/usuarios/**").permitAll();
                     authorize.anyRequest().authenticated(); //qualquer um abaixo disso sera ignorado, Any request tem que ficar por ultimo
                 })
-                .oauth2Login(Customizer.withDefaults())
+                .oauth2Login(oathu2->{
+                    oathu2.successHandler(loginSocialSucessHandler);
+                })
                 .build();
     }
     @Bean
