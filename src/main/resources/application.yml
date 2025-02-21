@@ -1,10 +1,15 @@
 spring:
   application:
     name: LibraryApi
+  profiles:
+    active: production
+  output:
+    ansi:
+      enabled: always
   datasource:
-    url: jdbc:postgresql://localhost:5432/library
-    username: postgres
-    password: postgres
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/library }
+    username: ${DATASOURCE_USERNAME:postgres}
+    password: ${DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -21,3 +26,61 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
+
+
+logging:
+  #pattern:
+    #console:
+  file:
+    name: app.log
+  level:
+    root: info
+    org:
+      springframework:
+        web: debug
+        security: info
+      io:
+        github:
+          lucasrbsouza:
+            libraryapi: trace
+
+# niveis de logging em ordem de abrangencia #
+# trace
+# debug
+# info
+# warn
+# error
+
+management:
+  server:
+    port: 8090
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+
+springdoc:
+  override-with-generic-response: false
+
+#production
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  jpa:
+    show-sql: false
+
+#homologacao
+---
+spring:
+  config:
+    activate:
+      on-profile: homologacao
+
+  jpa:
+    show-sql: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/library

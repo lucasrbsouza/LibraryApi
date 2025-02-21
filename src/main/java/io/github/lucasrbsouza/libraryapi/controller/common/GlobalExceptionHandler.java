@@ -5,6 +5,7 @@ import io.github.lucasrbsouza.libraryapi.controller.dtos.ErroResposta;
 import io.github.lucasrbsouza.libraryapi.exceptions.CampoInvalidoException;
 import io.github.lucasrbsouza.libraryapi.exceptions.OperacaoNaoPermitidaException;
 import io.github.lucasrbsouza.libraryapi.exceptions.RegistroDuplicadoException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -31,6 +33,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RegistroDuplicadoException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErroResposta handleRegistroDuplicadoException(RegistroDuplicadoException e) {
+    log.error("erro de validacao {}", e.getMessage());
         return ErroResposta.conflito(e.getMessage());
     }
 
@@ -59,6 +62,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErroResposta handleErrosNaoTratado(RuntimeException e) {
+        log.error("Erro inesperado: ", e);
         return new ErroResposta(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Ocorreu um erro inesperado no Servidor", List.of());
     }
 }
